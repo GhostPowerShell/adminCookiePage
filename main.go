@@ -10,7 +10,7 @@ import (
 
 // Constants that will be used throughout the application
 const (
-	Flag        = "CTF{4514n_L0x}"                               // the flag to display
+	Flag        = "CT}"                                          // the flag to display
 	SecretUser  = "01110101 01110011 01100101 01110010"          // default user role
 	SecretAdmin = "01100001 01100100 01101101 01101001 01101110" // admin role
 	CookieName  = "Role"                                         // the name of the cookie to check
@@ -58,11 +58,20 @@ func (s *Server) handleIndex() http.HandlerFunc {
 
 // Method of the Server struct that starts the server
 func (s *Server) Run(addr string) {
-	// Handle requests to the index route ("/") with the handleIndex method
-	http.HandleFunc("/", s.handleIndex())
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", s.handleIndex())
+
+	// Wrap the mux with the logRequest middleware
+	loggedRouter := logRequest(mux)
 
 	// Start the server and log any errors that occur
-	log.Fatal(http.ListenAndServe(addr, nil))
+	log.Fatal(http.ListenAndServe(addr, loggedRouter))
+}
+func logRequest(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("Received request: %s %s from %s", r.Method, r.URL.Path, r.RemoteAddr)
+		next.ServeHTTP(w, r)
+	})
 }
 
 // Main function that creates a new Server instance and runs it
