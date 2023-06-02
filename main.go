@@ -4,16 +4,18 @@ package main
 // Import the necessary libraries
 import (
 	"encoding/base64" // to encode and decode strings to/from base64
-	"log"             // to log errors
-	"net/http"        // to handle HTTP requests
+	"html/template"
+	"log"      // to log errors
+	"net/http" // to handle HTTP requests
+	"path/filepath"
 )
 
 // Constants that will be used throughout the application
 const (
-	Flag        = "CT}"                                          // the flag to display
-	SecretUser  = "01110101 01110011 01100101 01110010"          // default user role
-	SecretAdmin = "01100001 01100100 01101101 01101001 01101110" // admin role
-	CookieName  = "Role"                                         // the name of the cookie to check
+	Flag        = "aituctf{Ch4n91n9_c00k13_v3ry_345y!}"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    // the flag to display
+	SecretUser  = "00110110 00110101 00100000 00110110 00110101 00100000 00110011 00110001 00100000 00110011 00110001 00100000 00110110 00110011 00100000 00110110 00110010 00100000 00110110 00110010 00100000 00110011 00110001 00100000 00110011 00111001 00100000 00110011 00110000 00100000 00110011 00110101 00100000 00110011 00110010 00100000 00110110 00110101 00100000 00110011 00110100 00100000 00110011 00110000 00100000 00110110 00110010 00100000 00110011 00110000 00100000 00110011 00110111 00100000 00110110 00110001 00100000 00110110 00110001 00100000 00110110 00110011 00100000 00110011 00110000 00100000 00110110 00110011 00100000 00110110 00110001 00100000 00110011 00110000 00100000 00110011 00110110 00100000 00110011 00110000 00100000 00110110 00110011 00100000 00110011 00110010 00100000 00110011 00110011 00100000 00110110 00110101 00100000 00110110 00110101" // default user role
+	SecretAdmin = "00110011 00110010 00100000 00110011 00110001 00100000 00110011 00110010 00100000 00110011 00110011 00100000 00110011 00110010 00100000 00110110 00110110 00100000 00110011 00110010 00100000 00110011 00111001 00100000 00110011 00110111 00100000 00110110 00110001 00100000 00110011 00110101 00100000 00110011 00110111 00100000 00110110 00110001 00100000 00110011 00110101 00100000 00110110 00110001 00100000 00110011 00110111 00100000 00110011 00110100 00100000 00110011 00110011 00100000 00110011 00111000 00100000 00110011 00111001 00100000 00110011 00110100 00100000 00110110 00110001 00100000 00110011 00110000 00100000 00110110 00110101 00100000 00110011 00110100 00100000 00110110 00110001 00100000 00110011 00111000 00100000 00110011 00110000 00100000 00110011 00110001 00100000 00110110 00110110 00100000 00110110 00110011 00100000 00110011 00110011" // admin role
+	CookieName  = "Role"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   // the name of the cookie to check
 )
 
 // Server struct that holds the state of the server
@@ -37,22 +39,39 @@ func (s *Server) handleIndex() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Try to read the "Role" cookie from the request
 		cookie, err := r.Cookie(CookieName)
+		message := "Access Denied"
+		statusCode := http.StatusUnauthorized
 
-		// If the cookie does not exist or its value is not the base64 encoding of "admin",
-		// a new cookie is created with the value being the base64 encoding of "user",
-		// and an "Access Denied" message is displayed.
 		if err != nil || cookie.Value != s.secretAdmin {
 			cookie := &http.Cookie{
 				Name:  CookieName,
 				Value: s.secretUser,
 			}
 			http.SetCookie(w, cookie)
-			http.Error(w, "Access Denied", http.StatusUnauthorized)
+		} else {
+			message = s.flag
+			statusCode = http.StatusOK
+		}
+
+		templatesDir := filepath.Join("templates", "index.html")
+		tmpl, err := template.ParseFiles(templatesDir)
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
-		// If the cookie exists and its value is the base64 encoding of "admin",
-		// the flag is displayed.
-		w.Write([]byte(s.flag))
+
+		w.WriteHeader(statusCode)
+		data := struct {
+			Message string
+		}{
+			Message: message,
+		}
+
+		err = tmpl.Execute(w, data)
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
 	}
 }
 
@@ -76,6 +95,7 @@ func logRequest(next http.Handler) http.Handler {
 
 // Main function that creates a new Server instance and runs it
 func main() {
+
 	server := NewServer()
 	server.Run(":1337")
 }
