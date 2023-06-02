@@ -1,6 +1,6 @@
 FROM golang:latest
 
-WORKDIR /app
+WORKDIR /var/www/cookieapp
 
 COPY . .
 
